@@ -1,0 +1,35 @@
+package zerolenderProtocol;
+
+import java.math.BigInteger;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.math.ec.ECCurve;
+import org.bouncycastle.math.ec.ECPoint;
+
+import zero_knowledge_proofs.CryptoData.CryptoData;
+import zero_knowledge_proofs.CryptoData.CryptoDataArray;
+import zero_knowledge_proofs.CryptoData.ECCurveData;
+import zero_knowledge_proofs.CryptoData.ECPointData;
+
+public class ProtocolMain {
+	public static void main(String[] args)
+	{
+		SecureRandom rand = new SecureRandom();
+		ECPoint g = ECNamedCurveTable.getParameterSpec("secp256k1").getG();
+		ECCurve curve = g.getCurve();
+		BigInteger order = g.getCurve().getOrder();
+		BigInteger random;
+		do {
+			random = new BigInteger(256, rand);
+		}while(random.compareTo(order) >= 0);
+		ECPoint h = g.multiply(random);
+
+		CryptoData miniEnv = new CryptoDataArray(new CryptoData[] {new ECCurveData(curve, g), new ECPointData(h)});
+
+		System.out.println("Creating raw repayment table:  ");
+		int[] totalRepaymentPlan = new int[] {20,40,30,30,30};
+		RawRepaymentPlan table = new RawRepaymentPlan(3, 50, 20, 70, totalRepaymentPlan, rand, miniEnv);
+	}
+}

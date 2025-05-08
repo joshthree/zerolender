@@ -1,0 +1,96 @@
+package zerolenderProtocol;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.math.BigInteger;
+import java.security.SecureRandom;
+
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.math.ec.ECCurve;
+import org.bouncycastle.math.ec.ECPoint;
+
+public class CreateAnonymitySet {
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		//numAccounts, investorAmounts
+		if(args.length < 2) {
+			System.out.println("Usage:  java -cp \"./bin;./jars/*\" zeroLender.CreateAnonymousSet numAccounts max baseFileName [repaymentAmount]* ");
+			System.exit(0);
+		}
+		int numAccount = Integer.parseInt(args[0]);
+		int max = Integer.parseInt(args[1]);
+		String baseFileName = args[2];
+		int[] investorAmounts = new int[args.length-3];
+		
+		SecureRandom rand = new SecureRandom();
+		ECPoint g = ECNamedCurveTable.getParameterSpec("secp256k1").getG();
+		ECCurve curve = g.getCurve();
+		BigInteger order = g.getCurve().getOrder();
+		BigInteger random;
+		do {
+			random = new BigInteger(order.bitLength(), rand);
+		}while(random.compareTo(order) >= 0);
+		ECPoint h = g.multiply(random);
+		
+		int numInvestors = investorAmounts.length;
+		
+		BigInteger[] commKeys = new BigInteger[numInvestors];
+		
+		BigInteger[] addresses = new BigInteger[numAccount];
+		BigInteger[] accountKeys = new BigInteger[numAccount];
+		ECPoint[] publicKeys = new ECPoint[numAccount];
+		
+		SecureRandom r = new SecureRandom();
+		
+		int[] amounts = new int[numAccount];
+		ObjectOutputStream mainOut = new ObjectOutputStream(new FileOutputStream(new File(baseFileName)));
+		ObjectOutputStream mainPub = new ObjectOutputStream(new FileOutputStream(new File(baseFileName+ "_pub")));
+		ObjectOutputStream mainPriv = new ObjectOutputStream(new FileOutputStream(new File(baseFileName+ "_priv")));
+		ObjectOutputStream privateOut[] = new ObjectOutputStream[numAccount];	
+		mainOut.writeObject(h);
+		BigInteger[] clientAddresses = new BigInteger[investorAmounts.length];
+		for(int i = 0; i < numInvestors; i++) {
+			clientAddresses[i] = new BigInteger(192, r).add(BigInteger.valueOf(r.nextInt()*2+1).shiftLeft(192));
+		}
+		
+		int counter = 0;
+		for(int i = 0; i < investorAmounts.length; i++) {
+			privateOut[i] = new ObjectOutputStream(new FileOutputStream(new File(baseFileName + "_" + i)));
+			BigInteger address = new BigInteger(192, r).add(BigInteger.valueOf(r.nextInt()*2+1).shiftLeft(192));
+			investorAmounts[i] = Integer.parseInt(args[i+3]);
+			int numTransactions = r.nextInt(5);
+			if(numTransactions == 1) {
+				amounts[counter] = investorAmounts[i];
+				addresses[counter] = address;
+				
+				counter++;
+			}else {
+				double[] proportions = new double[numTransactions];
+				double totalDouble = 0;
+				int[] total = new int[numTransactions];
+				int totalInt = 0;
+				
+				for(int j = 0; j < numTransactions; j++) {
+					totalDouble += proportions[j] = r.nextDouble();
+				}
+				for(int j = 0; j < numTransactions; j++) {
+					totalInt += total[j] /= totalDouble * investorAmounts[j];
+				}
+				
+				while(totalInt <investorAmounts[i])
+				{
+					total[r.nextInt(numTransactions)]++;
+					totalInt++;
+				}
+				for(int j = 0; j < numTransactions; j++) {
+					amounts[counter] = total[j];
+					addresses[i] = address;
+					counter++;
+				}
+			}
+		}
+	}
+	
+}

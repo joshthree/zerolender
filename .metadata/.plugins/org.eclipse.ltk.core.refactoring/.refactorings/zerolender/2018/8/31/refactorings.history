@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename local variable &apos;m&apos; in &apos;zerolenderProtocol.ProverProtocolMain.main(...)&apos; to &apos;mTable&apos;&#x0D;&#x0A;- Original project: &apos;zerolender&apos;&#x0D;&#x0A;- Original element: &apos;zerolenderProtocol.ProverProtocolMain.main(String[]).m&apos;&#x0D;&#x0A;- Renamed element: &apos;m&apos;&#x0D;&#x0A;- Update references to refactored element" description="Rename local variable &apos;m&apos;" id="org.eclipse.jdt.ui.rename.local.variable" input="/src&lt;zerolenderProtocol{ProverProtocolMain.java[ProverProtocolMain~main~\[QString;@m!5410!5449!5420!5420!\[QECPoint;!0!false" name="mTable" references="true" stamp="1533118846698" version="1.0"/>
+</session>

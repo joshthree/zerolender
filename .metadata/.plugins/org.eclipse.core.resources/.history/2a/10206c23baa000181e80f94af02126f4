@@ -1,0 +1,55 @@
+package zerolenderProtocol;
+
+import java.security.SecureRandom;
+
+public class CreateAnonymitySet {
+	public static void main(String[] args) {
+		//numAccounts, investorAmounts
+		if(args.length < 2) {
+			System.out.println("Usage:  java -cp \"./bin;./jars/*\" zeroLender.CreateAnonymousSet numAccounts max [repaymentAmount]* ");
+			System.exit(0);
+		}
+		int numAccount = Integer.parseInt(args[0]);
+		int max = Integer.parseInt(args[1]);
+		int[] investorAmounts = new int[args.length-2];
+		
+		BigInteger[] addresses = new byte[numAccount][];
+		
+		SecureRandom r = new SecureRandom();
+		
+		int[] amounts = new int[numAccount];
+		
+		int counter = 0;
+		for(int i = 0; i < investorAmounts.length; i++) {
+			investorAmounts[i] = Integer.parseInt(args[i+2]);
+			int numTransactions = r.nextInt(5);
+			if(numTransactions == 1) {
+				amounts[counter] = investorAmounts[i];
+				counter++;
+			}else {
+				double[] proportions = new double[numTransactions];
+				double totalDouble = 0;
+				int[] total = new int[numTransactions];
+				int totalInt = 0;
+				
+				for(int j = 0; j < numTransactions; j++) {
+					totalDouble += proportions[j] = r.nextDouble();
+				}
+				for(int j = 0; j < numTransactions; j++) {
+					totalInt += total[j] /= totalDouble * investorAmounts[j];
+				}
+				
+				while(totalInt <investorAmounts[i])
+				{
+					total[r.nextInt(numTransactions)]++;
+					totalInt++;
+				}
+				for(int j = 0; j < numTransactions; j++) {
+					amounts[counter] = total[j];
+					counter++;
+				}
+			}
+		}
+	}
+	
+}

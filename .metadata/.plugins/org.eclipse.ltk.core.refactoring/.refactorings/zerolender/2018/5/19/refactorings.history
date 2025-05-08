@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;&apos; to &apos;zero_knowledge_proofs.ZKPProtocol.compoundProtocols&apos;&#x0D;&#x0A;- Original project: &apos;variance&apos;&#x0D;&#x0A;- Destination element: &apos;zero_knowledge_proofs.ZKPProtocol.compoundProtocols&apos;&#x0D;&#x0A;- Original element: &apos;zero_knowledge_proofs.ZKPProtocol.compoundProtocols&apos;" description="Copy field" destination="/src&lt;zero_knowledge_proofs{ZKPProtocol.java[ZKPProtocol^compoundProtocols" element1="/src&lt;zero_knowledge_proofs{ZKPProtocol.java[ZKPProtocol^compoundProtocols" flags="589830" id="org.eclipse.jdt.ui.copy" members="1" policy="org.eclipse.jdt.ui.copyMembers" stamp="1525903383116" version="1.0"/>
+</session>

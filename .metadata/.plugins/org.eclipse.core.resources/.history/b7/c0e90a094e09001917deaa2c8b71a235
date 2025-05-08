@@ -1,0 +1,68 @@
+import java.math.BigInteger;
+
+public class Matrix implements MatrixInterface {
+
+	private BigInteger[][] matrix_;
+	private BigInteger prime;
+	public Matrix(BigInteger[][] matrix, BigInteger p) {
+		prime = p;
+		if(p.isProbablePrime(50)) throw new IllegalArgumentException("p must be prime");
+		matrix_ = new BigInteger[matrix.length][matrix[0].length];
+		for(int i = 0; i < matrix.length; i++) {
+			if(matrix[0].length != matrix[i].length) throw new ArrayIndexOutOfBoundsException("Matricies must be rectangular");
+			for(int j = 0; j < matrix[i].length; j++) {
+				if(matrix[i][j] == null) throw new NullPointerException("Null in matrix at " + i + ", " + j);
+				matrix_[i][j] = matrix[i][j];
+			}
+		}
+	}
+	
+	@Override
+	public BigInteger[][] getMatrix() {
+		BigInteger[][] matrix = new BigInteger[matrix_.length][matrix_[0].length];
+		for(int i = 0; i < matrix_.length; i++) {
+			if(matrix_[0].length != matrix_[i].length) throw new ArrayIndexOutOfBoundsException("Matricies must be rectangular");
+			for(int j = 0; j < matrix_[i].length; j++) {
+				matrix_[i][j] = matrix_[i][j];
+			}
+		}
+		
+		return matrix;
+	}
+
+	@Override
+	public MatrixInterface getInverse() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public int xDim() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int yDim() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public MatrixInterface multiply(MatrixInterface m) {
+		if(m.yDim() != xDim()) throw new UnsupportedOperationException("Invalid Matrix Dimensions");
+		if(m.getPrime())
+		BigInteger[][] otherMatrix = m.getMatrix();
+		
+		
+		return null;
+	}
+
+	@Override
+	public BigInteger getPrime() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

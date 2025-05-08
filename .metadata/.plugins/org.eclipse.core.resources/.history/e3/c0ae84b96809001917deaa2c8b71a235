@@ -1,0 +1,20 @@
+import java.math.BigInteger;
+import java.security.SecureRandom;
+
+public class MatrixTester {
+
+	public static void main(String[] args) {
+		BigInteger[][] m = new BigInteger[][] {
+			{BigInteger.valueOf(1),BigInteger.valueOf(0),BigInteger.valueOf(0)},
+			{BigInteger.valueOf(1),BigInteger.valueOf(2), BigInteger.valueOf(3)},
+			{BigInteger.valueOf(1),BigInteger.valueOf(4), BigInteger.valueOf(9)}
+		};
+		
+		BigInteger prime = BigInteger.probablePrime(256, new SecureRandom());
+		
+		MatrixInterface matrix = new Matrix(m, prime);
+		matrix.getInverse();
+
+	}
+
+}

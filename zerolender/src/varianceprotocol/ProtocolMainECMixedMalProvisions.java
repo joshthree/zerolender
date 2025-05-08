@@ -1,0 +1,451 @@
+package varianceprotocol;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Base64.Decoder;
+
+import javax.net.ServerSocketFactory;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocketFactory;
+
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.math.ec.ECCurve;
+import org.bouncycastle.math.ec.ECPoint;
+
+import java.util.Date;
+import java.util.Random;
+
+import zero_knowledge_proofs.ArraySizesDoNotMatchException;
+import zero_knowledge_proofs.ECPedersenCommitment;
+import zero_knowledge_proofs.ECProvisionsProver;
+import zero_knowledge_proofs.InvalidStringFormatException;
+import zero_knowledge_proofs.MultipleTrueProofException;
+import zero_knowledge_proofs.NoTrueProofException;
+import zero_knowledge_proofs.ZKPProtocol;
+import zero_knowledge_proofs.CryptoData.BigIntData;
+import zero_knowledge_proofs.CryptoData.CryptoData;
+import zero_knowledge_proofs.CryptoData.CryptoDataArray;
+import zero_knowledge_proofs.CryptoData.ECCurveData;
+import zero_knowledge_proofs.CryptoData.ECPointData;
+
+public class ProtocolMainECMixedMalProvisions {
+	//TODO Make usage statement:  <excecutable> <ip> <port> <accounts file name> <key file name> <environment file name> <blockSize> [seed (optional)]
+
+	static boolean verify = true; //This is lousy, make it an instance
+	static ECPedersenCommitment othersSumCommitment;
+
+	@SuppressWarnings({ "resource" })
+	public static void main(String[] args) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, SecurityException, InvalidStringFormatException, IOException, ClassNotFoundException{
+		int debug = 0;
+
+		System.setProperty("javax.net.ssl.trustStore", "resources/Client_Truststore");
+		System.setProperty("javax.net.ssl.keyStore", "resources/Server_Keystore");
+		System.setProperty("javax.net.ssl.trustStorePassword", "test123");
+		System.setProperty("javax.net.ssl.keyStorePassword", "test123");
+		System.setProperty("java.security.policy", "resources/mysecurity.policy");
+		ServerSocketFactory ssf = SSLServerSocketFactory.getDefault();
+		SocketFactory sf = SSLSocketFactory.getDefault();
+		Decoder decoder = Base64.getDecoder();
+		
+		System.out.println(new Date());
+		
+		ZKPProtocol.registerProtocol("Provisions", ECProvisionsProver.class, true);
+		ZKPProtocol prover = ZKPProtocol.generateProver("Provisions");
+
+
+		ServerSocket host = null;
+		Socket s;
+		ObjectInputStream in;
+		ObjectOutputStream out;
+		try {
+			SocketAddress dest = new InetSocketAddress(args[0], Integer.parseInt(args[1]));
+			s = sf.createSocket();
+			s.connect(dest);
+			System.out.println("Connection to Server successful");
+			in = new ObjectInputStream(s.getInputStream());
+			out = new ObjectOutputStream(s.getOutputStream());
+		}
+		catch(Exception e){
+			System.out.println("Connection not open, opening server");
+			try {
+				host = ssf.createServerSocket(Integer.parseInt(args[1]));
+				s = host.accept();
+				if(args[0].equals(s.getInetAddress().getHostAddress())){
+					System.out.println("");
+				}
+				System.out.println("Connection established");
+				out = new ObjectOutputStream(s.getOutputStream());
+				in = new ObjectInputStream(s.getInputStream());
+			}
+			catch( java.net.BindException ex)
+			{
+				SocketAddress dest = new InetSocketAddress(args[0], Integer.parseInt(args[1]));
+				s = sf.createSocket();
+				s.connect(dest);
+				System.out.println("Connection to Server successful");
+				in = new ObjectInputStream(s.getInputStream());
+				out = new ObjectOutputStream(s.getOutputStream());
+			}
+		}
+
+		final long startTime = System.currentTimeMillis();
+		InputStream fis = new FileInputStream(args[2]);
+	    InputStreamReader isr = new InputStreamReader(fis);
+	    BufferedReader br = new BufferedReader(isr);
+	    
+		InputStream keyFile = new FileInputStream(args[3]);
+	    InputStreamReader isr2 = new InputStreamReader(keyFile);
+	    BufferedReader keyBr = new BufferedReader(isr2);
+	    
+		InputStream envFile = new FileInputStream(args[4]);
+	    InputStreamReader isr3 = new InputStreamReader(envFile);
+	    BufferedReader envBr = new BufferedReader(isr3);
+
+	    int blockSize = Integer.parseInt(args[5]);
+	    ECPedersenCommitment[][] otherCommitments = new ECPedersenCommitment[blockSize][2];
+		
+	    System.out.println("Attempting to Connect");
+	    Random r;
+	    if(args.length == 7)
+	    {
+	    	BigInteger seedInt = new BigInteger(args[6]);
+	    	byte[] seed = seedInt.toByteArray();
+	    	r = new SecureRandom(seed);
+	    }
+	    else {
+	    	r = new SecureRandom();
+	    }
+		
+		
+	    
+		String dataRow;
+
+		dataRow = envBr.readLine();
+		String[] envString = dataRow.split("\t");
+		ECPoint g = ECNamedCurveTable.getParameterSpec("secp256k1").getG();
+		ECCurve c = g.getCurve();	
+		ECPoint h = g.multiply(new BigInteger(envString[1]));
+		BigInteger order = c.getOrder();
+		int bitLength = order.bitLength() - 1;//I would like to avoid my random numbers being greater than the prime.	
+
+		
+		ArrayList<CryptoData[]> knownKeys = new ArrayList<CryptoData[]>();
+		CryptoData environment = new CryptoDataArray(new CryptoData[] {new ECCurveData(c,g), new ECPointData(h)});
+		
+		CryptoData[] commitment1Env = new CryptoData[] {new ECCurveData(c, h), null};
+		CryptoData[] commitment2Env = new CryptoData[] {new ECCurveData(c,g), new ECPointData(h)};
+		CryptoData commEnv2 = new CryptoDataArray(commitment2Env);
+		BigInteger sum = BigInteger.ZERO;
+		BigInteger sumKey = BigInteger.ZERO;
+		
+		othersSumCommitment = new ECPedersenCommitment(BigInteger.ZERO, BigInteger.ZERO, commEnv2);
+
+		Writer arg0 = null;
+		try {
+			arg0 = new FileWriter("Verifier_Transcript_" + args[3] + "_Provisions");
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+		BufferedWriter out2 = new BufferedWriter(arg0);
+		StringBuilder transcript = new StringBuilder();
+
+		transcript.append("Environment:  ");
+		transcript.append(environment.toString64());
+		transcript.append("\n\n");
+		while((dataRow = keyBr.readLine()) != null)
+		{
+			//String format:  "Public Key	Private Key"
+			 
+			String[] stringData = dataRow.split("\t");
+
+			if(stringData[0].length() >= 2 && stringData[0].substring(0, 2).equals("//")) {
+				if(debug != 0)  System.out.printf("Key Line Omitted:  %s\n", dataRow);
+				continue;	//lines can be commented with //
+			}
+			if(stringData.length != 2) 
+			{
+				System.err.printf("Line rejected from Keys:  %s\n", dataRow);
+				continue;				
+			}
+			
+			
+			CryptoData[] keyPair = new CryptoData[2];
+			try
+			{
+				keyPair[0] = new BigIntData(new BigInteger(decoder.decode(stringData[0])));
+				keyPair[1] = new ECPointData(c.decodePoint(decoder.decode(stringData[1])));
+				knownKeys.add(keyPair);
+			}
+			catch(Exception e)
+			{
+				System.err.println("Line failed:  Not parsed as numbers.  " + dataRow);
+				continue;
+			}
+		}
+		
+		knownKeys.add(new CryptoData[] {new BigIntData(BigInteger.ZERO), new ECPointData(g)});
+		int counter = 0;
+		int index = 0;
+		int proverIndex = 0;
+		CryptoData[] input = new CryptoData[blockSize];
+		CryptoData[][] acc = new CryptoData[blockSize][3];
+
+		CryptoData[] bIntArray = new CryptoData[13];
+		BigIntData ONE = new BigIntData(BigInteger.ONE);
+		BigIntData ZERO = new BigIntData(BigInteger.ZERO);
+		
+		while((dataRow = br.readLine()) != null)
+		{
+			
+			if(dataRow.length() == 0) continue;
+			
+			//String Format:  "Amount in account	Public Key" for each line. 
+			String[] stringData = dataRow.split("\t");
+			
+			if(stringData[0].length() >= 2 && stringData[0].substring(0, 2).equals("//")) {
+				if(debug != 0)  System.out.printf("Account Line Omitted:  %s\n", dataRow);
+				continue;	//lines can be commented with //
+			}
+			if(stringData.length != 2) 
+			{
+				System.err.printf("Line rejected from accounts:  %s\n", dataRow);
+				continue;				
+			}
+
+			counter++;
+//			if(counter % 2<<15 == 0)
+//			{
+//				out.flush();
+//				out.reset();
+//			}
+			try
+			{
+//				System.out.println("IN TRY:			" + stringData[0] + "     " + stringData[1]);
+				BigInteger b = new BigInteger(stringData[0], 16);
+				acc[proverIndex][0] = new BigIntData(b);
+				acc[proverIndex][1] = new ECPointData(c.decodePoint(decoder.decode(stringData[1])));
+				acc[proverIndex][2] = new ECPointData(g.multiply(b));
+			}
+			catch(Exception e)
+			{
+				System.err.println("Line failed:  Not parsed as numbers.  " + dataRow);
+				continue;
+			}
+			CryptoData[] k = knownKeys.get(index);
+			BigInteger commKey;	
+			if(k[1].getECPointData(c).equals(acc[proverIndex][1].getECPointData(c))){
+				index++;
+				BigInteger v = new BigInteger(bitLength, r);
+				BigInteger t = new BigInteger(bitLength, r);
+				
+				ECPedersenCommitment[] commitments = new ECPedersenCommitment[2];
+				
+				commKey = BigInteger.ONE;
+				commitment1Env[1] = acc[proverIndex][2];
+				CryptoData commEnv1 = new CryptoDataArray(commitment1Env);
+				commitments[0] = new ECPedersenCommitment(v, commKey, commEnv1);
+				
+				commitment1Env[1] = acc[proverIndex][1];
+				commEnv1 = new CryptoDataArray(commitment1Env);
+				commitments[1] = new ECPedersenCommitment(t, commKey, commEnv1);
+				
+				sumKey = sumKey.add(v).mod(order);
+				sum = sum.add((acc[proverIndex][0]).getBigInt());
+				
+				out.writeObject(commitments);
+
+				//[0      , 1         , 2   , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 ]
+				//[account, public key, xhat, v_i, t_i, s_i, u_1, u_2, u_3, u_4, u_5, u_6, c_f]
+				bIntArray[0] = acc[proverIndex][2];
+				bIntArray[1] = acc[proverIndex][1];
+				bIntArray[2] = k[0];
+				bIntArray[3] = new BigIntData(v);
+				bIntArray[4] = new BigIntData(t);
+				bIntArray[5] = ONE;
+				bIntArray[6] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[7] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[8] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[9] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[10] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[11] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[12] = new BigIntData(new BigInteger(bitLength, r));
+				
+				input[proverIndex] = new CryptoDataArray(bIntArray);
+			}
+			else
+			{
+				BigInteger v = new BigInteger(bitLength, r);
+				BigInteger t = new BigInteger(bitLength, r);
+				
+				ECPedersenCommitment[] commitments = new ECPedersenCommitment[2];
+
+				commKey = BigInteger.ZERO;
+				commitment1Env[1] = acc[proverIndex][2];
+				CryptoData commEnv1 = new CryptoDataArray(commitment1Env);
+				commitments[0] = new ECPedersenCommitment(v, commKey, commEnv1);
+
+
+				commitment1Env[1] = acc[proverIndex][1];
+				commEnv1 = new CryptoDataArray(commitment1Env);
+				commitments[1] = new ECPedersenCommitment(t, commKey, commEnv1);
+				
+				sumKey = sumKey.add(v).mod(order);
+				
+				out.writeObject(commitments);
+
+				//[0      , 1         , 2   , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 ]
+				//[account, public key, xhat, v_i, t_i, s_i, u_1, u_2, u_3, u_4, u_5, u_6, c_f]
+				bIntArray[0] = acc[proverIndex][2];
+				bIntArray[1] = acc[proverIndex][1];
+				bIntArray[2] = ZERO;
+				bIntArray[3] = new BigIntData(v);
+				bIntArray[4] = new BigIntData(t);
+				bIntArray[5] = ZERO;
+				bIntArray[6] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[7] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[8] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[9] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[10] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[11] = new BigIntData(new BigInteger(bitLength, r));
+				bIntArray[12] = new BigIntData(new BigInteger(bitLength, r));
+				
+				input[proverIndex] = new CryptoDataArray(bIntArray);
+			}
+			proverIndex++;
+			if(proverIndex == blockSize)
+			{
+				runProver(prover, host, in, out, otherCommitments, r, h, bitLength, commEnv2,
+						environment, proverIndex, acc, input, transcript);
+
+				out2.write(transcript.toString());
+				transcript.setLength(0);
+				out2.flush();
+				out.flush();
+				out.reset();
+				proverIndex = 0;
+			}
+
+		}
+		if(proverIndex != 0)
+		{
+			runProver(prover, host, in, out, otherCommitments, r, h, bitLength, commEnv2,
+					environment, proverIndex, acc, input, transcript);
+
+			out2.write(transcript.toString());
+			transcript.setLength(0);
+		}
+
+
+		
+
+		if(verify)
+			System.out.println("Success!");
+		else 
+		{
+			System.out.println("FAILURE");
+		}
+		out.flush();
+		final long endTime = System.currentTimeMillis();
+		System.out.println(counter);
+		out.writeObject(sum);
+		out.writeObject(sumKey);
+		BigInteger otherSum = (BigInteger) in.readObject();
+		BigInteger otherKeySum = (BigInteger) in.readObject();
+		out.flush();
+		commitment1Env[1] = new ECPointData(g);
+		CryptoData commEnv1 = new CryptoDataArray(commitment1Env);
+		if(othersSumCommitment.verifyCommitment(otherSum, otherKeySum, commEnv2))
+		{
+			System.out.println("Good Sum:  He owns " + otherSum + " Bitcoin");
+		}
+		else 
+		{
+			
+			System.out.printf("LIAR:\n\tC = %s\n\tm = %s\n\tr = %s\n\t\n", othersSumCommitment.getCommitment(commEnv1), otherSum, otherKeySum);
+		}
+
+		System.out.println("Total execution time: " + (endTime - startTime) );
+		try {
+			arg0 = new FileWriter("OutputProvisions_" + args[3]);
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+		BufferedWriter out1 = new BufferedWriter(arg0);
+
+		if(verify)
+			out1.write("Success!\n");
+		else 
+		{
+			out1.write("FAILURE\n");
+		}
+		out1.write(String.format("Total execution time: %d\n", (endTime - startTime)));
+		out1.flush();
+		out.close();
+		out1.close();
+		out2.flush();
+		out2.close();
+		in.close();
+		s.close();
+		if(host != null) host.close();
+	}
+
+	private static void runProver(ZKPProtocol prover, ServerSocket host,
+			ObjectInputStream in, ObjectOutputStream out, ECPedersenCommitment[][] otherCommitments, Random r, ECPoint h,
+			int bitLength, CryptoData commitmentEnv, CryptoData environment, int proverIndex,
+			CryptoData[][] acc, CryptoData[] input, StringBuilder transcript) throws IOException {
+		
+		for(int i = 0; i < proverIndex; i++)
+		{
+			try { 
+				otherCommitments[i] = (ECPedersenCommitment[]) in.readObject();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+		out.flush();
+		for(int i = 0; i < proverIndex; i++)
+		{					
+			
+			CryptoData otherInput = new CryptoDataArray(new CryptoData[] {acc[i][2], acc[i][1], new ECPointData(otherCommitments[i][0].getCommitment(commitmentEnv)), new ECPointData(otherCommitments[i][1].getCommitment(commitmentEnv))});
+			
+			try {
+				BigInteger[] c = new BigInteger[] {new BigInteger(bitLength, r),new BigInteger(bitLength, r)};
+				ECPedersenCommitment myCmt = new ECPedersenCommitment(c[0], c[1], environment);
+				ObjectInputStream[] inArray = {in}; 
+				ObjectOutputStream[] outArray = {out}; 
+				verify = prover.parallelZKProve(input[i], otherInput, environment, in, out, myCmt, environment, c, transcript);
+				if(!(verify)) {
+//							System.out.println(myVerify + " " + otherVerify);
+					break;
+				}
+				else othersSumCommitment = othersSumCommitment.multiplyCommitment(otherCommitments[i][0], environment);
+					
+			} catch (ClassNotFoundException | MultipleTrueProofException | NoTrueProofException
+					| ArraySizesDoNotMatchException e) {
+				
+				e.printStackTrace();
+			}
+		}
+	}
+
+}

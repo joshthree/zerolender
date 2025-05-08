@@ -1,0 +1,54 @@
+import java.math.BigInteger;
+
+public class Matrix implements MatrixInterface {
+
+	private BigInteger[][] matrix_;
+	
+	public Matrix(BigInteger[][] matrix, BigInteger p) {
+		matrix_ = new BigInteger[matrix.length][matrix[0].length];
+		for(int i = 0; i < matrix.length; i++) {
+			if(matrix[0].length != matrix[i].length) throw new ArrayIndexOutOfBoundsException("Matricies must be rectangular");
+			for(int j = 0; j < matrix[i].length; j++) {
+				if((matrix_[i][j] = matrix[i][j]) == null) throw new NullPointerException("Null in matrix at " + i + ", " + j);
+			}
+		}
+	}
+	
+	@Override
+	public BigInteger[][] getMatrix() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public MatrixInterface getInverse() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public int xDim() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int yDim() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public MatrixInterface multiply(MatrixInterface m) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public BigInteger getPrime() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

@@ -1,0 +1,111 @@
+package zerolenderProtocol;
+
+import java.math.BigInteger;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.InputMismatchException;
+
+import zero_knowledge_proofs.ECPedersenCommitment;
+import zero_knowledge_proofs.ECSchnorrProver;
+import zero_knowledge_proofs.ZKPProtocol;
+import zero_knowledge_proofs.ZeroKnowledgeAndProver;
+import zero_knowledge_proofs.CryptoData.CryptoData;
+
+public class RawRepaymentPlan {
+	private ECPedersenCommitment[][] table;
+	private int[][] uncommittedTable;
+	private BigInteger[][] keys;
+	
+	
+	
+	public RawRepaymentPlan(int units, int sizeOfRepayment, int min, int max, int[] totalRepaymentTable, SecureRandom rand, CryptoData commitmentEnvironment) {
+		if(units <= 0 || sizeOfRepayment <= 0 || min <= 0 || max <= 0) throw new InputMismatchException("Expected positive numbers");
+		
+		if(min >= max) throw new InputMismatchException("min should be less than max.");
+		int repayments = totalRepaymentTable.length;
+		
+		int sumTotal = 0;
+		
+		int average = (sizeOfRepayment) / repayments;
+		for(int i = 0; i < repayments; i++) {
+			sumTotal += totalRepaymentTable[i];
+			if(totalRepaymentTable[i] < (min/repayments)*units) throw new InputMismatchException("Total Repayment Plan entry " + i + " is too small.");
+			if(totalRepaymentTable[i] > (max/repayments)*units) throw new InputMismatchException("Total Repayment Plan entry " + i + " is too large.");
+		}
+		if(sumTotal < sizeOfRepayment * units) throw new InputMismatchException("Total repayment table does not conform to the number of units and the size of repayment");
+		int colAverage[] = new int[repayments];
+		int counter = 0;
+		
+		table = new ECPedersenCommitment[repayments][units];
+		uncommittedTable = new int[repayments][units];
+		keys = new BigInteger[repayments][units];
+		int[] colSums = new int[repayments];
+		int[] rowSums = new int[units];
+		for(int i = 0; i < table.length; i++)
+		{
+			int totalAverage = totalRepaymentTable[i]/units;
+			colAverage[i] = totalAverage;
+			int totalRemainder = totalRepaymentTable[i] - totalAverage*units;
+			
+			for(int j = 0; j < table[i].length; j++)
+			{
+				uncommittedTable[i][j] = totalAverage;
+			}
+			for(;totalRemainder > 0; totalRemainder--)
+			{
+				uncommittedTable[i][counter]++;
+				counter = (counter + 1) % units;
+			}
+			for(int j = 0; j < table[i].length; j++)
+			{
+				colSums[i] += uncommittedTable[i][j];
+				rowSums[j] += uncommittedTable[i][j];
+			}
+		}
+		
+		//Double check table
+		for(int i = 0; i < repayments; i++)
+		{
+			if(colSums[i] != totalRepaymentTable[i])
+				System.out.println("Bad!!!!  i = " + i + ", " + colSums[i] + " != " + totalRepaymentTable[i]);
+		}
+		for(int j = 0; j < units; j++)
+		{
+			if(rowSums[j] != sizeOfRepayment)
+				System.out.println("Bad!!!!  j = " + j + ", " + rowSums[j] + " != " + sizeOfRepayment);
+		}
+		
+		for(int i = 0; i < repayments; i++)
+		{
+			System.out.println(Arrays.toString(uncommittedTable[i]));
+		}
+		
+		System.out.println(Arrays.toString(totalRepaymentTable));
+		
+		BigInteger order = commitmentEnvironment.getCryptoDataArray()[0].getECCurveData().getOrder();
+		//Commit the values.
+		for(int i = 0; i < table.length; i++)
+		{
+			for(int j = 0; j < table[i].length;j++) {
+				do {
+					keys[i][j] = new BigInteger(order.bitLength(), rand);
+				}while(keys[i][j].compareTo(order) >= 0);
+				table[i][j] = new ECPedersenCommitment(BigInteger.valueOf(uncommittedTable[i][j]), keys[i][j], commitmentEnvironment);
+			}
+		}
+		ZKPProtocol schnorr = new ECSchnorrProver();
+		ZKPProtocol[] unpackedRows = new ZKPProtocol[units];
+		for(int i = 0; i < units; i++)
+		{
+			unpackedRows[i] = schnorr;
+		}
+		ZKPProtocol rowProver = new ZeroKnowledgeAndProver(unpackedRows);
+		
+		unpackedRows = new ZKPProtocol[repayments];
+		for(int i = 0; i < repayments; i++)
+		{
+			unpackedRows[i] = schnorr;
+		}
+		ZKPProtocol colProver = new ZeroKnowledgeAndProver(unpackedRows);
+	}
+}

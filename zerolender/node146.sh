@@ -1,0 +1,1 @@
+java -cp ./jars/bcprov-ext-jdk15on-157.jar:./bin protocol.ProtocolMainECMixedMalWithComparisonMultiSigWithFriends 192.168.10.1 5201 5200 Account1000_0.05_0.5_2_2 P2.0_Keys1000_0.05_0.5_2_2 ecEnvironment 1 P2Friends

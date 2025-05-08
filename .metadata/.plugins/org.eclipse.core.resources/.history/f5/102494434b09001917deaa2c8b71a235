@@ -1,0 +1,35 @@
+import java.math.BigInteger;
+
+public class Matrix implements MatrixInterface {
+
+	@Override
+	public BigInteger[] getMatrix() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public MatrixInterface getInverse() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public MatrixInterface multiply() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public int xDim() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int yDim() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+}

@@ -1,0 +1,4 @@
+# Invoke-Command -ComputerName ENG401068 -ScriptBlock {Invoke-Expression -Command: "cmd.exe /c 'C:\Users\joshholmes\Variance_Workspace_Summer\variance\friends.bat -ArgumentList 1 127.0.0.1 5201'"} -AsJob
+# Invoke-Command -ComputerName ENG401068 -ScriptBlock {Invoke-Expression -Command: "cmd.exe /c 'C:\Users\joshholmes\Variance_Workspace_Summer\variance\mainParty.bat -ArgumentList 1 127.0.0.1 5200 5201'"} -AsJob
+# Invoke-Command -ComputerName ENG401068 -ScriptBlock {Invoke-Expression -Command: "cmd.exe /c 'C:\Users\joshholmes\Variance_Workspace_Summer\variance\friends.bat -ArgumentList 2 127.0.0.1 5200'"} -AsJob
+Invoke-Command -ComputerName 127.0.0.1 -ScriptBlock {Invoke-Expression -Command: "cmd.exe /c 'C:\Users\joshholmes\Variance_Workspace_Summer\variance\mainParty.bat' 2 127.0.0.1 5201 5200 C:\Users\joshholmes\Variance_Workspace_Summer\variance"}

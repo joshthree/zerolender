@@ -1,0 +1,31 @@
+import java.math.BigInteger;
+import java.security.SecureRandom;
+
+public class MatrixTester {
+
+	public static void main(String[] args) {
+		BigInteger[][] m = new BigInteger[][] {
+			{BigInteger.valueOf(1),BigInteger.valueOf(0),BigInteger.valueOf(0)},
+			{BigInteger.valueOf(1),BigInteger.valueOf(2), BigInteger.valueOf(3)},
+			{BigInteger.valueOf(1),BigInteger.valueOf(4), BigInteger.valueOf(9)}
+		};
+		
+		
+		BigInteger prime = BigInteger.probablePrime(10, new SecureRandom());
+//		prime = BigInteger.valueOf(797);
+		System.out.println(prime);
+	
+		System.out.println(m.length);
+		System.out.println(m[0].length);
+		MatrixInterface matrix = new Matrix(m,prime);
+		MatrixInterface inverse = matrix.getInverse();
+		BigInteger[][] results = new BigInteger[][]{{BigInteger.valueOf(30)},{BigInteger.valueOf(100)},{BigInteger.valueOf(115)}};
+		MatrixInterface blah = new Matrix(results, prime);
+		BigInteger[][] coefficients = blah.multiply(inverse).getMatrix();
+		System.out.println();
+		for(int i = 0; i < coefficients.length; i++) {
+			System.out.println(coefficients[i][0]);
+		}
+	}
+
+}

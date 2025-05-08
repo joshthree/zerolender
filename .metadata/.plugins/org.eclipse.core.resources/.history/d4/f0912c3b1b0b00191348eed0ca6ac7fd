@@ -1,0 +1,6 @@
+package zero_knowledge_proofs;
+
+public class ZeroKnowledgeThreshold {
+	private static MatrixInterface[][] usedMatricies = new Matrix[10][];
+	
+}
