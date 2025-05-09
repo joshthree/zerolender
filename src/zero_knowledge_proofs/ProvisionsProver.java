@@ -1,0 +1,254 @@
+package zero_knowledge_proofs;
+
+import java.math.BigInteger;
+
+import zero_knowledge_proofs.CryptoData.CryptoData;
+import zero_knowledge_proofs.CryptoData.CryptoDataArray;
+
+public class ProvisionsProver extends ZKPProtocol {
+	//[0      , 1         , 2   , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 ]
+	//[account, public key, xhat, v_i, t_i, s_i, u_1, u_2, u_3, u_4, u_5, u_6, c_f]
+	@Override
+	public CryptoData initialComm(CryptoData input, CryptoData environment)
+			throws MultipleTrueProofException, NoTrueProofException, ArraySizesDoNotMatchException {
+		CryptoData[] inputs = input.getCryptoDataArray();
+		CryptoData[] env = environment.getCryptoDataArray();
+		BigInteger b = inputs[0].getBigInt();
+		BigInteger y = inputs[1].getBigInt();
+//		BigInteger s = inputs[5].getBigInt();
+		BigInteger u_1 = inputs[6].getBigInt();
+		BigInteger u_2 = inputs[7].getBigInt();
+		BigInteger u_3 = inputs[8].getBigInt();
+		BigInteger u_4 = inputs[9].getBigInt();
+		BigInteger u_5 = inputs[10].getBigInt();
+		BigInteger u_6 = inputs[11].getBigInt();
+		BigInteger c_f = inputs[12].getBigInt();
+		BigInteger p = env[0].getBigInt();
+		BigInteger g = env[1].getBigInt();
+		BigInteger h = env[2].getBigInt();
+		BigInteger[] a = new BigInteger[5];
+		//a format: [a_1, a_2, a_3, binA_0, binA_1]
+		
+		boolean s = inputs[5].getBigInt().equals(BigInteger.ONE);
+		a[0] = (b.modPow(u_1, p).multiply(h.modPow(u_2, p)).mod(p));
+		a[1] = (y.modPow(u_1, p).multiply(h.modPow(u_3, p)).mod(p));
+		a[2] = (g.modPow(u_4, p).multiply(h.modPow(u_3, p)).mod(p));
+		
+		
+		//y^s * h^t
+		a[3] = h.modPow(u_5, p);
+		if(s) a[3] = (a[3].multiply(y.modPow(c_f.negate(), p))).mod(p);
+
+		a[4] = h.modPow(u_6, p);
+		if(!s) a[4] = (a[4].multiply(y.modPow(c_f,p))).mod(p);
+		
+		return new CryptoDataArray(a);
+	}
+
+	//unused, not needed
+	//[account, public key, 
+	@Override
+	public CryptoData initialCommSim(CryptoData input, BigInteger challenge, CryptoData environment)
+			throws MultipleTrueProofException, ArraySizesDoNotMatchException {
+		
+		
+		return null;
+	}
+
+	//[0      , 1         , 2   , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 ]
+	//[account, public key, xhat, v_i, t_i, s_i, u_1, u_2, u_3, u_4, u_5, u_6, c_f]
+	@Override
+	public CryptoData calcResponse(CryptoData input, BigInteger challenge, CryptoData environment)
+			throws NoTrueProofException, MultipleTrueProofException {
+		CryptoData[] inputs = input.getCryptoDataArray();
+		CryptoData[] env = environment.getCryptoDataArray();
+
+		BigInteger xhat = inputs[2].getBigInt();
+		BigInteger v = inputs[3].getBigInt();
+		BigInteger t = inputs[4].getBigInt();
+//		BigInteger s = inputs[5].getBigInt();
+		BigInteger u_1 = inputs[6].getBigInt();
+		BigInteger u_2 = inputs[7].getBigInt();
+		BigInteger u_3 = inputs[8].getBigInt();
+		BigInteger u_4 = inputs[9].getBigInt();
+		BigInteger u_5 = inputs[10].getBigInt();
+		BigInteger u_6 = inputs[11].getBigInt();
+		BigInteger c_f = inputs[12].getBigInt();
+		BigInteger p = env[0].getBigInt();
+		BigInteger order = p.subtract(BigInteger.ONE);
+		boolean s = inputs[5].getBigInt().equals(BigInteger.ONE);
+		//r = [r_s, r_v, r_t, r_x, c_1, r_0, r_1]
+		BigInteger[] response = new BigInteger[7];
+		if(s) response[0] = u_1.add(challenge).mod(order);
+		else response[0] = u_1;
+		
+		response[1] = (u_2.add(challenge.multiply(v))).mod(order);
+		response[2] = (u_3.add(challenge.multiply(t))).mod(order);
+		response[3] = (u_4.add(challenge.multiply(xhat))).mod(order);
+		
+		if(s) response[4] = ((challenge.subtract(c_f))).mod(order);
+		else  response[4] = c_f;
+
+		//y^s * h^t
+		response[5] = (u_5.add((challenge.subtract(response[4])).multiply(t))).mod(order);
+		response[6] = (u_6.add(response[4].multiply(t))).mod(order);
+		
+		return new CryptoDataArray(response);
+	}
+
+	//not used
+	@Override
+	public CryptoData simulatorGetResponse(CryptoData input) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	//        [0      , 1         , 2  , 3  ]
+	//input:  [account, public key, p_i, l_i]
+	@Override
+	public boolean verifyResponse(CryptoData input, CryptoData a, CryptoData z, BigInteger challenge, CryptoData environment) {
+		CryptoData[] inputs = input.getCryptoDataArray();
+		CryptoData[] env = environment.getCryptoDataArray();
+		CryptoData[] resp = z.getCryptoDataArray();
+		CryptoData[] init = a.getCryptoDataArray();
+		
+		BigInteger b = inputs[0].getBigInt();
+		BigInteger y = inputs[1].getBigInt();
+		BigInteger pComm = inputs[2].getBigInt();
+		BigInteger lComm = inputs[3].getBigInt();
+		
+		BigInteger p = env[0].getBigInt();
+		BigInteger g = env[1].getBigInt();
+		BigInteger h = env[2].getBigInt();
+		
+		BigInteger r_s = resp[0].getBigInt();
+		BigInteger r_v = resp[1].getBigInt();
+		BigInteger r_t = resp[2].getBigInt();
+		BigInteger r_x = resp[3].getBigInt();
+		BigInteger c_1 = resp[4].getBigInt();
+		BigInteger r_0 = resp[5].getBigInt();
+		BigInteger r_1 = resp[6].getBigInt();
+		
+		BigInteger a_1 = init[0].getBigInt();
+		BigInteger a_2 = init[1].getBigInt();
+		BigInteger a_3 = init[2].getBigInt();
+		BigInteger binA_0 = init[3].getBigInt();
+		BigInteger binA_1 = init[4].getBigInt();
+		
+		//resp:  [r_s, r_v, r_t, r_x]
+		BigInteger s1L = (b.modPow(r_s, p).multiply(h.modPow(r_v, p))).mod(p);
+		BigInteger s1R = (pComm.modPow(challenge, p).multiply(a_1)).mod(p);
+		
+		BigInteger s2L = (y.modPow(r_s, p).multiply(h.modPow(r_t, p))).mod(p);
+		BigInteger s2R = (lComm.modPow(challenge, p).multiply(a_2)).mod(p);
+		
+		BigInteger s3L = (g.modPow(r_x, p).multiply(h.modPow(r_t, p))).mod(p);
+		BigInteger s3R = (lComm.modPow(challenge, p).multiply(a_3)).mod(p);
+
+		//a = [a_1, a_2, a_3, binA_0, binA_1]
+		//r = [r_s, r_v, r_t, r_x, c_1, r_0, r_1]
+		
+		//y^s * h^t
+		BigInteger s4L = h.modPow(r_0, p);
+		BigInteger s4R = (binA_0.multiply(lComm.modPow(challenge.subtract(c_1), p))).mod(p);
+				
+		BigInteger s5L = h.modPow(r_1, p);
+		BigInteger s5R = (binA_1.multiply((lComm.multiply(y.modInverse(p))).modPow(c_1, p))).mod(p);
+		boolean toReturn = (s1L.equals(s1R) && s2L.equals(s2R) && s3L.equals(s3R) && s4L.equals(s4R) && s5L.equals(s5R));
+		if(!toReturn) {
+			System.out.println("Verifier Input = " + input);
+			System.out.printf("%s		==		%s\n%s		==		%s\n%s		==		%s\n%s		==		%s\n%s		==		%s\n\n\n",s1L,(s1R), s2L,(s2R), s3L,(s3R), s4L,(s4R), s5L,(s5R));
+		}
+		return toReturn;
+	}
+
+	@Override
+	public CryptoData initialComm(CryptoData publicInput, CryptoData secrets, CryptoData environment)
+			throws MultipleTrueProofException, NoTrueProofException, ArraySizesDoNotMatchException {
+		
+		CryptoData[] sU = secrets.getCryptoDataArray();
+		CryptoData[] inputs = publicInput.getCryptoDataArray();
+		CryptoData[] env = environment.getCryptoDataArray();
+		BigInteger b = inputs[0].getBigInt();
+		BigInteger y = inputs[1].getBigInt();
+		BigInteger u_1 = sU[4].getBigInt();
+		BigInteger u_2 = sU[5].getBigInt();
+		BigInteger u_3 = sU[6].getBigInt();
+		BigInteger u_4 = sU[7].getBigInt();
+		BigInteger u_5 = sU[8].getBigInt();
+		BigInteger u_6 = sU[9].getBigInt();
+		BigInteger c_f = sU[10].getBigInt();
+		BigInteger p = env[0].getBigInt();
+		BigInteger g = env[1].getBigInt();
+		BigInteger h = env[2].getBigInt();
+		BigInteger[] a = new BigInteger[5];
+		//a format: [a_1, a_2, a_3, binA_0, binA_1]
+		
+		boolean s = sU[3].getBigInt().equals(BigInteger.ONE);
+		a[0] = (b.modPow(u_1, p).multiply(h.modPow(u_2, p)).mod(p));
+		a[1] = (y.modPow(u_1, p).multiply(h.modPow(u_3, p)).mod(p));
+		a[2] = (g.modPow(u_4, p).multiply(h.modPow(u_3, p)).mod(p));
+		
+		
+		//y^s * h^t
+		a[3] = h.modPow(u_5, p);
+		if(s) a[3] = (a[3].multiply(y.modPow(c_f.negate(), p))).mod(p);
+
+		a[4] = h.modPow(u_6, p);
+		if(!s) a[4] = (a[4].multiply(y.modPow(c_f,p))).mod(p);
+		
+		return new CryptoDataArray(a);
+	}
+
+	@Override
+	public CryptoData initialCommSim(CryptoData publicInput, CryptoData secrets, BigInteger challenge,
+			CryptoData environment)
+			throws MultipleTrueProofException, ArraySizesDoNotMatchException, NoTrueProofException {
+		return null;
+	}
+
+	@Override
+	public CryptoData calcResponse(CryptoData publicInput, CryptoData secrets, BigInteger challenge,
+			CryptoData environment) throws NoTrueProofException, MultipleTrueProofException {
+		CryptoData[] sU = secrets.getCryptoDataArray();
+		CryptoData[] env = environment.getCryptoDataArray();
+
+		BigInteger xhat = sU[0].getBigInt();
+		BigInteger v = sU[1].getBigInt();
+		BigInteger t = sU[2].getBigInt();
+//		BigInteger s = inputs[3].getBigInt();
+		BigInteger u_1 = sU[4].getBigInt();
+		BigInteger u_2 = sU[5].getBigInt();
+		BigInteger u_3 = sU[6].getBigInt();
+		BigInteger u_4 = sU[7].getBigInt();
+		BigInteger u_5 = sU[8].getBigInt();
+		BigInteger u_6 = sU[9].getBigInt();
+		BigInteger c_f = sU[10].getBigInt();
+		BigInteger p = env[0].getBigInt();
+		BigInteger order = p.subtract(BigInteger.ONE);
+		boolean s = sU[3].getBigInt().equals(BigInteger.ONE);
+		//r = [r_s, r_v, r_t, r_x, c_1, r_0, r_1]
+		BigInteger[] response = new BigInteger[7];
+		if(s) response[0] = u_1.add(challenge).mod(order);
+		else response[0] = u_1;
+		
+		response[1] = (u_2.add(challenge.multiply(v))).mod(order);
+		response[2] = (u_3.add(challenge.multiply(t))).mod(order);
+		response[3] = (u_4.add(challenge.multiply(xhat))).mod(order);
+		
+		if(s) response[4] = ((challenge.subtract(c_f))).mod(order);
+		else  response[4] = c_f;
+
+		//y^s * h^t
+		response[5] = (u_5.add((challenge.subtract(response[4])).multiply(t))).mod(order);
+		response[6] = (u_6.add(response[4].multiply(t))).mod(order);
+		
+		return new CryptoDataArray(response);
+	}
+
+	@Override
+	public CryptoData simulatorGetResponse(CryptoData publicInput, CryptoData secrets) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}
