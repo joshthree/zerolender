@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-	<classpathentry excluding="zero_knowledge_proofs/CVPProver.java|protocol/ECCProtocolMain.java|protocol/ProtocolMain.java|protocol/ProtocolMainHeap.java|protocol/ProtocolMainHeap2.java|protocol/ProtocolMainMixed2.java|verifierTest/VerifierTestMain.java|protocol/ProtocolMainECMixed.java|protocol/ProtocolMainECMixedProvisions.java|protocol/ProtocolMainMixed.java|protocol/ProtocolMainMixedProvisions.java|protocol/ECCProtocolMain2.java|protocol/Experiment.java|protocol/ProtocolMain2.java|proverTest/TestEqualLogTest.java|zero_knowledge_proofs/ZKPVerifier.java|zero_knowledge_proofs/DLSchnorrVerifier.java|zero_knowledge_proofs/ECEqualDiscreteLogsVerifier.java|zero_knowledge_proofs/ECPOKPedersenVerifier.java|zero_knowledge_proofs/ECProofOfPrechosenExponentVerifier.java|zero_knowledge_proofs/ECProvisionsVerifier.java|zero_knowledge_proofs/ECSchnorrVerifier.java|zero_knowledge_proofs/ZeroKnowledgeAndVerifier.java|zero_knowledge_proofs/ZeroKnowledgeOrVerifier.java|zero_knowledge_proofs/ProvisionsVerifier.java|proverTest/|verifierTest/|varianceprotocol/" kind="src" path="src"/>
-	<classpathentry kind="lib" path="jars/bcprov-ext-jdk15on-155.jar"/>
-	<classpathentry kind="lib" path="jars/bcprov-jdk15on-155.jar"/>
-	<classpathentry kind="output" path="bin"/>
-</classpath>
